@@ -32,10 +32,12 @@ function getNeonConfig() {
 
 function buildThemeFile(disableGlow, neonBrightness) {
 	const chromeStyles = fs.readFileSync(path.join(__dirname, 'css', 'editor_chrome.css'), 'utf-8');
+	const glowFallback = fs.readFileSync(path.join(__dirname, 'css', 'neon_glow_fallback.css'), 'utf-8');
 	const jsTemplate = fs.readFileSync(path.join(__dirname, 'js', 'theme_template.js'), 'utf-8');
 	return jsTemplate
 		.replace(/\[DISABLE_GLOW\]/g, disableGlow)
-		.replace(/\[CHROME_STYLES\]/g, chromeStyles)
+		.replace(/\[CHROME_STYLES\]/g, () => chromeStyles)
+		.replace(/\[GLOW_FALLBACK_STYLES\]/g, () => glowFallback)
 		.replace(/\[NEON_BRIGHTNESS\]/g, neonBrightness);
 }
 

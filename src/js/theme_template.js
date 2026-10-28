@@ -15,44 +15,31 @@
     '36f9f6': "color: #fdfdfd; text-shadow: 0 0 2px #001716, 0 0 3px #03edf9[NEON_BRIGHTNESS], 0 0 5px #03edf9[NEON_BRIGHTNESS], 0 0 8px #03edf9[NEON_BRIGHTNESS]; backface-visibility: hidden;"
   };
 
+  console.log("Synthwave '84: neondreams.js loaded (fork auto-glow)");
+
   //=============================
   // Helper functions
   //=============================
 
   /**
    * @summary Check if the style element exists and that it has synthwave '84 color content
-   * @param {HTMLElement} tokensEl the style tag
-   * @param {object} replacements key/value pairs of colour hex and the glow styles to replace them with
-   * @returns {boolean}
    */
   const themeStylesExist = (tokensEl, replacements) => {
-    return tokensEl.innerText !== '' && 
+    return tokensEl && tokensEl.innerText !== '' &&
       Object.keys(replacements).every(color => {
         return tokensEl.innerText.toLowerCase().includes(`#${color}`);
       });
   };
 
-  /**
-   * @summary Search and replace colours within a CSS definition
-   * @param {string} styles the text content of the style tag
-   * @param {object} replacements key/value pairs of colour hex and the glow styles to replace them with
-   * @returns 
-   */
   const replaceTokens = (styles, replacements) => Object.keys(replacements).reduce((acc, color) => {
     const re = new RegExp(`color: #${color};`, 'gi');
     return acc.replace(re, replacements[color]);
   }, styles);
 
   /**
-   * @summary Checks if a theme is applied, and that the theme belongs to the Synthwave 84 family
-   * @returns {boolean}
+   * @summary Checks if the theme is synthwave (fork-compat: any synthwave class)
    */
   const usingSynthwave = () => {
-    // Fork-compat: original checked only 'RobbOwen-synthwave-vscode-themes'.
-    // After rename (horangelmillan/synthwave-84-auto-glow) the workbench
-    // emits a different class, so match any synthwave theme class.
-    // e.g. 'RobbOwen-synthwave-vscode-themes-...' or
-    // 'horangelmillan-synthwave-84-auto-glow-themes-...'
     const synthWaveTheme = document.querySelector('[class*="synthwave"]');
     if (!synthWaveTheme) return false;
     const appliedTheme = document.querySelector('[class*="theme-json"]')
@@ -60,26 +47,33 @@
     return !!appliedTheme;
   }
 
-  /**
-   * @summary Checks if the theme is synthwave, and that the styles exist, ready for replacement
-   * @param {HTMLElement} tokensEl the style tag
-   * @param {object} replacements key/value pairs of colour hex and the glow styles to replace them with
-   * @returns 
-   */
-  const readyForReplacement = (tokensEl, tokenReplacements) => tokensEl 
-    ? (
-      // only init if we're using a Synthwave 84 subtheme
-      usingSynthwave() &&         
-      // does it have content ?
-      themeStylesExist(tokensEl, tokenReplacements)
-    )
+  const readyForReplacement = (tokensEl, tokenReplacements) => tokensEl
+    ? (usingSynthwave() && themeStylesExist(tokensEl, tokenReplacements))
     : false;
 
+  const appendStyleTag = (cssText, tagId) => {
+    if (document.querySelector('#' + tagId)) return false;
+    const tag = document.createElement('style');
+    tag.setAttribute('id', tagId);
+    tag.innerText = cssText.replace(/(\r\n|\n|\r)/gm, '');
+    document.body.appendChild(tag);
+    return true;
+  };
+
   /**
-   * @summary Attempts to bootstrap the theme
-   * @param {boolean} disableGlow 
-   * @param {MutationObserver} obs 
+   * @summary Fallback: inject static .mtk glow rules without token detection.
+   * Used when VS Code changes .vscode-tokens-styles format (e.g. 1.143+).
    */
+  const injectFallbackGlow = (disableGlow, reason) => {
+    if (document.querySelector('#synthwave-84-theme-styles')) return;
+    const fallback = `[GLOW_FALLBACK_STYLES]`;
+    const chrome = `[CHROME_STYLES]`;
+    const css = disableGlow ? chrome : (fallback + chrome);
+    if (appendStyleTag(css, 'synthwave-84-theme-styles')) {
+      console.log("Synthwave '84: NEON DREAMS initialised via FALLBACK (" + reason + ")");
+    }
+  };
+
   const initNeonDreams = (disableGlow, obs) => {
     const tokensEl = document.querySelector('.vscode-tokens-styles');
 
@@ -87,49 +81,33 @@
       return;
     }
 
-    // Add the theme styles if they don't already exist in the DOM
     if (!document.querySelector('#synthwave-84-theme-styles')) {
       const initialThemeStyles = tokensEl.innerText;
-      
-      // Replace tokens with glow styles
-      let updatedThemeStyles = !disableGlow 
-        ? replaceTokens(initialThemeStyles, tokenReplacements) 
+      let updatedThemeStyles = !disableGlow
+        ? replaceTokens(initialThemeStyles, tokenReplacements)
         : initialThemeStyles;
-      
-      /* append the remaining styles */
       updatedThemeStyles = `${updatedThemeStyles}[CHROME_STYLES]`;
-  
-      const newStyleTag = document.createElement('style');
-      newStyleTag.setAttribute("id", "synthwave-84-theme-styles");
-      newStyleTag.innerText = updatedThemeStyles.replace(/(\r\n|\n|\r)/gm, '');
-      document.body.appendChild(newStyleTag);
-      
+      appendStyleTag(updatedThemeStyles, 'synthwave-84-theme-styles');
       console.log('Synthwave \'84: NEON DREAMS initialised!');
     }
 
-    // disconnect the observer because we don't need it anymore
     if (obs) {
       obs.disconnect();
       obs = null;
     }
+    clearTimeout(fallbackTimer);
   };
 
-  /**
-   * @summary A MutationObserver callback that attempts to bootstrap the theme and assigns a retry attempt if it fails
-   */
   const watchForBootstrap = function(mutationsList, observer) {
     for(let mutation of mutationsList) {
       if (mutation.type === 'attributes' || mutation.type === 'childList') {
-        // does the style div exist yet?
         const tokensEl = document.querySelector('.vscode-tokens-styles');
         if (readyForReplacement(tokensEl, tokenReplacements)) {
-          // If everything we need is ready, then initialise
           initNeonDreams([DISABLE_GLOW], observer);
         } else {
           if (tokensEl) {
-            // sometimes VS code takes a while to init the styles content, so if there stop this observer and add an observer for that
             observer.disconnect();
-            observer.observe(tokensEl, { childList: true });
+            observer.observe(tokensEl, { childList: true, characterData: true, subtree: true });
           }
         }
       }
@@ -139,12 +117,28 @@
   //=============================
   // Start bootstrapping!
   //=============================
-  // Grab body node
   const bodyNode = document.querySelector('body');
-  // Use a mutation observer to check when we can bootstrap the theme
   const observer = new MutationObserver(watchForBootstrap);
-  /* watch for both attribute and childList changes because, depending on 
-  the VS code version, the mutations might happen on the body, or they might 
-  happen on a nested div */
-  observer.observe(bodyNode, { attributes: true, childList: true });
+  observer.observe(bodyNode, { attributes: true, childList: true, subtree: true });
+
+  // Try once immediately in case DOM is already ready
+  try { initNeonDreams([DISABLE_GLOW], null); } catch (e) {
+    console.log("Synthwave '84: immediate init failed, waiting for mutations");
+  }
+
+  // Fallback timer: if token detection never succeeds (new VS Code internals),
+  // still inject static glow so the user sees neon instead of nothing.
+  const fallbackTimer = setTimeout(() => {
+    if (document.querySelector('#synthwave-84-theme-styles')) return;
+    const hasTokensEl = !!document.querySelector('.vscode-tokens-styles');
+    const hasSynthClass = !!document.querySelector('[class*="synthwave"]');
+    const tokensTxt = hasTokensEl
+      ? (document.querySelector('.vscode-tokens-styles').innerText || '').slice(0, 120)
+      : '(no tokens el)';
+    console.log("Synthwave '84: token path failed"
+      + " tokensEl=" + hasTokensEl
+      + " synthClass=" + hasSynthClass
+      + " sample=" + JSON.stringify(tokensTxt));
+    injectFallbackGlow([DISABLE_GLOW], 'token-detection-timeout');
+  }, 5000);
 })();
