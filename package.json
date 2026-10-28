@@ -1,14 +1,14 @@
 {
-    "name": "synthwave-vscode",
-    "displayName": "SynthWave '84",
-    "description": "A Synthwave-inspired colour theme to satisfy your neon dreams",
-    "version": "0.1.20",
+    "name": "synthwave-84-auto-glow",
+    "displayName": "SynthWave '84 Auto-Glow (Fork)",
+    "description": "Synthwave-inspired theme with auto-restore Neon glow after VS Code updates. Fork of RobbOwen.synthwave-vscode (MIT).",
+    "version": "0.2.0",
     "author": "Robb Owen",
-    "publisher": "RobbOwen",
+    "publisher": "horangelmillan",
     "icon": "icon.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/robb0wen/synthwave-vscode"
+        "url": "https://github.com/horangelmillan/synthwave-84-auto-glow"
     },
     "engines": {
         "vscode": "^1.33.0"
@@ -24,6 +24,7 @@
         "Themes"
     ],
     "activationEvents": [
+        "onStartupFinished",
         "onCommand:synthwave84.enableNeon",
         "onCommand:synthwave84.disableNeon"
     ],
@@ -58,6 +59,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Disable the glow effect, but show Synthwave '84 editor chrome updates"
+                },
+                "synthwave84.autoEnableOnStartup": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically re-apply Neon Dreams after a VS Code update wipes the workbench HTML patch."
                 }
             }
         }
