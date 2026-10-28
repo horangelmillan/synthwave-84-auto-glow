@@ -48,9 +48,16 @@
    * @returns {boolean}
    */
   const usingSynthwave = () => {
-    const appliedTheme = document.querySelector('[class*="theme-json"]');
-    const synthWaveTheme = document.querySelector('[class*="RobbOwen-synthwave-vscode-themes"]');
-    return appliedTheme && synthWaveTheme;
+    // Fork-compat: original checked only 'RobbOwen-synthwave-vscode-themes'.
+    // After rename (horangelmillan/synthwave-84-auto-glow) the workbench
+    // emits a different class, so match any synthwave theme class.
+    // e.g. 'RobbOwen-synthwave-vscode-themes-...' or
+    // 'horangelmillan-synthwave-84-auto-glow-themes-...'
+    const synthWaveTheme = document.querySelector('[class*="synthwave"]');
+    if (!synthWaveTheme) return false;
+    const appliedTheme = document.querySelector('[class*="theme-json"]')
+      || document.querySelector('.vscode-tokens-styles');
+    return !!appliedTheme;
   }
 
   /**
